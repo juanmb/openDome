@@ -9,15 +9,27 @@ Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 #include <Arduino.h>
 #include "monster_motor_shield.h"
 
+// Arduino pins
+#define EN1 A0
+#define EN2 A1
+#define CS1 A2
+#define CS2 A3
+#define INA1 7
+#define INA2 4
+#define INB1 8
+#define INB2 9
+#define PWM1 5
+#define PWM2 6
+
 
 /*  VNH2SP30 pin definitions
  xxx[0] controls '1' outputs
  xxx[1] controls '2' outputs */
-int inApin[2] = {7, 4};  // INA: Clockwise input
-int inBpin[2] = {8, 9}; // INB: Counter-clockwise input
-int pwmpin[2] = {5, 6}; // PWM input
-int cspin[2] = {2, 3}; // CS: Current sense ANALOG input
-int enpin[2] = {0, 1}; // EN: Status of switches output (Analog pin)
+int inApin[2] = {INA1, INA2}; // Clockwise input
+int inBpin[2] = {INB1, INB2}; // Counter-clockwise input
+int pwmpin[2] = {PWM1, PWM2}; // PWM input
+int cspin[2] = {CS1, CS2}; // Current sense (analog inputs)
+int enpin[2] = {EN1, EN2}; // Status of switches output (analog pin)
 
 
 MMSMotor::MMSMotor(int n)

@@ -30,6 +30,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #include <EEPROM.h>
 #include <avr/wdt.h>
 #include <SoftwareSerial.h>
+#include <monster_motor_shield.h>
 #include <dc_motor.h>
 #include "serial_command.h"
 
