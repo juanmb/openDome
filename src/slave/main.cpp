@@ -29,31 +29,17 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #include "shutter.h"
 
 // Pin definitions
-#ifdef SINGLE_SHUTTER
-#define SW_A1    5      // shutter closed switch (normally closed)
-#define SW_A2    6      // shutter open switch (normally closed)
-#else
 #define SW_A1    12     // shutter closed switch (NC)
 #define SW_A2    11     // shutter open switch (NO)
 #define SW_B1    10     // flap closed switch (NC)
 #define SW_B2    3      // flap open switch (NO)
-#endif
-
-#ifdef ANALOG_BUTTONS
-#define BUTTONS  A4     // analog input for reading the buttons
-#else
-#define BTN_PIN1 11	// 'open' button
-#define BTN_PIN2 12	// 'close' button
-#endif
-
-#define SW_INTER 2      // shutter interference detection switch (NC)
+#define SW_IN    2      // shutter interference detection switch (NC)
 #define MOTOR_A1 8	// motor driver pin 1
 #define MOTOR_A2 9	// motor driver pin 2
-#define LED_PIN  13
-#define VBAT_PIN A5     // battery voltage reading
-
-
-#define BUTTON_REPS 4  // Number of ADC readings required to detect a pressed button
+#define BTNX     A4     // analog input for reading the buttons
+#define BTN1     A6     // 'open' button
+#define BTN2     A7     // 'close' button
+#define VBAT     A5     // battery voltage reading
 
 // Timeouts in ms
 #ifndef COMMAND_TIMEOUT
@@ -67,6 +53,8 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define FLAP_TIMEOUT 15000   // Max. time the flap takes to open/close
 #endif
 
+#define BUTTON_REPS 4  // Number of ADC readings required to detect a pressed button
+
 #define LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
 enum {
@@ -77,39 +65,39 @@ enum {
     BTN_B_CLOSE,
 };
 
-SerialCommand sCmd;
-unsigned long lastCmdTime = 0;
+// Detect mechanical interfence between the two shutters
+bool checkFlapInter(State st)
+{
+    return (st == ST_OPENING) && digitalRead(SW_IN);
+}
 
+// Detect mechanical interfence between the two shutters
+bool checkShutInter(State st)
+{
+    return (st == ST_CLOSING) && digitalRead(SW_IN) && !digitalRead(SW_B1);
+}
 
 #ifdef SINGLE_SHUTTER
 // Single shutter with a generic motor driver
 DCMotor motorA(MOTOR_A1, MOTOR_A2);
-Shutter shutters[] = {
-    Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT),
-};
 #else
-
-// Detect mechanical interfence between the two shutters
-bool checkFlapInterference(State st)
-{
-    return (st == ST_OPENING) && digitalRead(SW_INTER);
-}
-
-// Detect mechanical interfence between the two shutters
-bool checkShutInterference(State st)
-{
-    return (st == ST_CLOSING) && digitalRead(SW_INTER) && !digitalRead(SW_B1);
-}
-
 // Two shutters controlled by a Monster Motor Shield
 MMSMotor motorA(0);
 MMSMotor motorB(1);
+#endif
 
 Shutter shutters[] = {
-    Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT, checkShutInterference),
-    Shutter(&motorB, SW_B1, SW_B2, FLAP_TIMEOUT, checkFlapInterference),
-};
+#ifdef SINGLE_SHUTTER
+    Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT),
+#else
+    Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT, checkShutInter),
+    Shutter(&motorB, SW_B1, SW_B2, FLAP_TIMEOUT, checkFlapInter),
 #endif
+};
+
+SerialCommand sCmd;
+unsigned long lastCmdTime = 0;
+
 
 // Detect a pressed button by reading an analog input.
 // Every button puts a different voltage at the input.
@@ -140,12 +128,11 @@ int readAnalogButtons(int pin)
     return 0;
 }
 
-#ifndef ANALOG_BUTTONS
-int readButtons()
+int readDigitalButtons()
 {
     static int btn1_prev = 1, btn2_prev = 1;
-    int btn1 = digitalRead(BTN_PIN1);
-    int btn2 = digitalRead(BTN_PIN2);
+    int btn1 = digitalRead(BTN1);
+    int btn2 = digitalRead(BTN2);
     int btn = BTN_NONE;
 
     if (!btn1 && btn1_prev)
@@ -157,7 +144,6 @@ int readButtons()
     btn2_prev = btn2;
     return btn;
 }
-#endif
 
 // Return the combined status of the shutters
 State domeStatus()
@@ -230,7 +216,7 @@ void cmdStatus()
 void cmdGetVBat()
 {
     lastCmdTime = millis();
-    int val = analogRead(VBAT_PIN);
+    int val = analogRead(VBAT);
     char buffer[8];
     sprintf(buffer, "v%04d", val);
     Serial.write(buffer);
@@ -241,14 +227,14 @@ void setup()
     wdt_disable();
     wdt_enable(WDTO_1S);
 
-    pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
     pinMode(SW_A1, INPUT_PULLUP);
     pinMode(SW_A2, INPUT_PULLUP);
-
-#ifndef ANALOG_BUTTONS
-    pinMode(BTN_PIN1, INPUT_PULLUP);
-    pinMode(BTN_PIN2, INPUT_PULLUP);
-#endif
+    pinMode(SW_B1, INPUT_PULLUP);
+    pinMode(SW_B2, INPUT_PULLUP);
+    pinMode(SW_IN, INPUT_PULLUP);
+    pinMode(BTN1, INPUT_PULLUP);
+    pinMode(BTN2, INPUT_PULLUP);
 
     // Map serial commands to functions
     sCmd.addCommand("open", cmdOpenBoth);
@@ -261,18 +247,18 @@ void setup()
 
     Serial.begin(9600);
 
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     delay(200);
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
 }
 
 
 void loop()
 {
 #ifdef ANALOG_BUTTONS
-    int btn = readAnalogButtons(BUTTONS);
+    int btn = readAnalogButtons(BTNX);
 #else
-    int btn = readButtons();
+    int btn = readDigitalButtons();
 #endif
 
     switch(btn) {
@@ -295,7 +281,7 @@ void loop()
     State st = domeStatus();
 
     // switch on the LED if there is an error
-    digitalWrite(LED_PIN, (st == ST_ERROR));
+    digitalWrite(LED_BUILTIN, (st == ST_ERROR));
 
     // close the dome if the time since the last command is too long
     if ((lastCmdTime > 0) && ((millis() - lastCmdTime) > COMMAND_TIMEOUT)) {
