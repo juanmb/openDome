@@ -40,17 +40,24 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //#define MOTOR_SHIELD  // Uncomment if the motor driver is a Monster Motor Shield
 //#define USE_BUTTONS   // Uncomment if you want to move the dome with push buttons
 
+#ifndef ENCODER_DIV
+#define ENCODER_DIV 	1 	// Encoder divider ratio
+#endif
+
 #ifndef AZ_TIMEOUT
 #define AZ_TIMEOUT      60000   // Azimuth movement timeout (in ms)
 #endif
+
 #ifndef AZ_TOLERANCE
 #define AZ_TOLERANCE    4      	// Azimuth target tolerance in encoder ticks
 #endif
+
 #ifndef AZ_SLOW_RANGE
 #define AZ_SLOW_RANGE   8       // The motor will run at slower speed when the
                                 // dome is at this number of ticks from the target
 #endif
-#define DEBOUNCE_MS     10      // Discard encoder pulses shorter than this duration
+
+//#define DEBOUNCE_MS     10    // Discard encoder pulses shorter than this duration
                                 // (in milliseconds)
 
 // pin definitions
@@ -509,24 +516,27 @@ void updateAzimuthFSM()
 // Encoder interrupt service routine
 void encoderISR()
 {
+#ifdef DEBOUNCE_MS
     // debounce encoder signal
     static unsigned long now, last;
     now = millis();
     if (now - last < DEBOUNCE_MS)
         return;
     last = now;
+#endif
+
+    static uint8_t count = 0;
 
     if(digitalRead(ENCODER1) == digitalRead(ENCODER2)) {
-        if (current_pos == 0)
-            current_pos = ticks_per_turn - 1;
-        else
-            current_pos--;
-    }
-    else {
-        if (current_pos >= ticks_per_turn - 1)
-            current_pos = 0;
-        else
-            current_pos++;
+        count = (count == 0 ? ENCODER_DIV - 1 : count - 1);
+        if (count == 0) {
+            current_pos = (current_pos == 0 ? ticks_per_turn - 1 : current_pos - 1);
+        }
+    } else {
+        count = (count + 1 == ENCODER_DIV ? 0 : count + 1);
+        if (count == 0) {
+            current_pos = (current_pos + 1 == ticks_per_turn ? 0 : current_pos + 1);
+        }
     }
 }
 
