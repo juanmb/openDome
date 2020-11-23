@@ -9,9 +9,6 @@ Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 #ifndef _motor_driver_h_
 #define _motor_driver_h_
 
-#define DIR_CW  0x01
-#define DIR_CCW 0x02
-
 
 // Virtual Motor class
 class MotorDriver {

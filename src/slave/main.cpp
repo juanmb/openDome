@@ -33,7 +33,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define SW_A2    11     // shutter open switch (NO)
 #define SW_B1    10     // flap closed switch (NC)
 #define SW_B2    3      // flap open switch (NO)
-#define SW_IN    2      // shutter interference detection switch (NC)
+#define SW_INT   2      // shutter interference detection switch (NC)
 #define MOTOR_A1 8	// motor driver pin 1
 #define MOTOR_A2 9	// motor driver pin 2
 #define BTNX     A4     // analog input for reading the buttons
@@ -68,13 +68,13 @@ enum {
 // Detect mechanical interfence between the two shutters
 bool checkFlapInter(State st)
 {
-    return (st == ST_OPENING) && digitalRead(SW_IN);
+    return (st == ST_OPENING) && digitalRead(SW_INT);
 }
 
 // Detect mechanical interfence between the two shutters
 bool checkShutInter(State st)
 {
-    return (st == ST_CLOSING) && digitalRead(SW_IN) && !digitalRead(SW_B1);
+    return (st == ST_CLOSING) && digitalRead(SW_INT) && !digitalRead(SW_B1);
 }
 
 #ifdef SINGLE_SHUTTER
@@ -232,7 +232,7 @@ void setup()
     pinMode(SW_A2, INPUT_PULLUP);
     pinMode(SW_B1, INPUT_PULLUP);
     pinMode(SW_B2, INPUT_PULLUP);
-    pinMode(SW_IN, INPUT_PULLUP);
+    pinMode(SW_INT, INPUT_PULLUP);
     pinMode(BTN1, INPUT_PULLUP);
     pinMode(BTN2, INPUT_PULLUP);
 

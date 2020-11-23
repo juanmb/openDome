@@ -6,8 +6,8 @@
 
 *******************************************************************/
 
-#ifndef _SerialCommand_h_
-#define _SerialCommand_h_
+#ifndef _serial_command_h_
+#define _serial_command_h_
 
 #include <inttypes.h>
 
@@ -29,11 +29,12 @@ typedef struct commandCallback {
 
 class SerialCommand {
 public:
-    SerialCommand();
+    SerialCommand(Stream *);
     void readSerial();
     void sendResponse(uint8_t *, uint8_t);
     int addCommand(const uint8_t, uint8_t, cbFunction);
 private:
+    Stream *stream;
     uint8_t getCRC(uint8_t*, uint8_t);
     commandCallback commandList[MAX_COMMANDS];
     uint8_t buffer[MAX_CMD_SIZE];

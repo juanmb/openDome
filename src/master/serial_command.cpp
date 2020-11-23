@@ -10,8 +10,9 @@
 #include "serial_command.h"
 
 
-SerialCommand::SerialCommand()
+SerialCommand::SerialCommand(Stream *dev)
 {
+    stream = dev;
     nCommands = 0;
     cmdSize = 0;
     bufPos = 0;
@@ -42,8 +43,8 @@ int SerialCommand::addCommand(const uint8_t id, uint8_t size, cbFunction functio
 
 void SerialCommand::readSerial()
 {
-    while (Serial.available()) {
-        char c = Serial.read();
+    while (stream->available()) {
+        char c = stream->read();
 
         switch (bufPos) {
         case 0:
@@ -89,6 +90,6 @@ void SerialCommand::sendResponse(uint8_t *cmd, uint8_t length)
     cmd[length - 1] = getCRC(cmd, length - 2);
 
     for (int i = 0; i < length; i++) {
-        Serial.write(cmd[i]);
+        stream->write(cmd[i]);
     }
 }
