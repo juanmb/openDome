@@ -1,6 +1,7 @@
 #ifndef _dome_h_
 #define _dome_h_
 
+#include <Arduino.h>
 #include <inttypes.h>
 #include "motor_driver.h"
 
