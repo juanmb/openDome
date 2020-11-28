@@ -34,8 +34,8 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define SW_B1    10     // flap closed switch (NC)
 #define SW_B2    3      // flap open switch (NO)
 #define SW_INT   2      // shutter interference detection switch (NC)
-#define MOTOR_A1 8	// motor driver pin 1
-#define MOTOR_A2 9	// motor driver pin 2
+#define MOTOR_A1 8      // motor driver pin 1
+#define MOTOR_A2 9      // motor driver pin 2
 #define BTNX     A4     // analog input for reading the buttons
 #define BTN1     A6     // 'open' button
 #define BTN2     A7     // 'close' button
@@ -43,17 +43,22 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 
 // Timeouts in ms
 #ifndef COMMAND_TIMEOUT
-#define COMMAND_TIMEOUT 60000   // Max. time from last command. If this time is
-                                // exceeded, the dome shutter will be closed.
-#endif
-#ifndef SHUT_TIMEOUT
-#define SHUT_TIMEOUT 75000   // Max. time the shutter takes to open/close
-#endif
-#ifndef FLAP_TIMEOUT
-#define FLAP_TIMEOUT 15000   // Max. time the flap takes to open/close
+// Max. time from last command. If this time is exceeded, the dome shutter will be closed.
+#define COMMAND_TIMEOUT 60000
 #endif
 
-#define BUTTON_REPS 4  // Number of ADC readings required to detect a pressed button
+#ifndef SHUT_TIMEOUT
+// Max. time the shutter takes to open/close
+#define SHUT_TIMEOUT 75000
+#endif
+
+#ifndef FLAP_TIMEOUT
+// Max. time the flap takes to open/close
+#define FLAP_TIMEOUT 15000
+#endif
+
+// Number of ADC readings required to detect a pressed button
+#define BUTTON_REPS 4
 
 #define LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
@@ -66,14 +71,12 @@ enum {
 };
 
 // Detect mechanical interfence between the two shutters
-bool checkFlapInter(State st)
-{
+bool checkFlapInter(State st) {
     return (st == ST_OPENING) && digitalRead(SW_INT);
 }
 
 // Detect mechanical interfence between the two shutters
-bool checkShutInter(State st)
-{
+bool checkShutInter(State st) {
     return (st == ST_CLOSING) && digitalRead(SW_INT) && !digitalRead(SW_B1);
 }
 
@@ -102,8 +105,7 @@ unsigned long lastCmdTime = 0;
 // Detect a pressed button by reading an analog input.
 // Every button puts a different voltage at the input.
 // A button is considered active after BUTTON_REPS succesive readings.
-int readAnalogButtons(int pin)
-{
+int readAnalogButtons(int pin) {
     static int btn_prev = 0, btn_count = 0;
 
     int buttonLimits[] = {92, 303, 518, 820};
@@ -128,8 +130,7 @@ int readAnalogButtons(int pin)
     return 0;
 }
 
-int readDigitalButtons()
-{
+int readDigitalButtons() {
     static int btn1_prev = 1, btn2_prev = 1;
     int btn1 = digitalRead(BTN1);
     int btn2 = digitalRead(BTN2);
@@ -146,8 +147,7 @@ int readDigitalButtons()
 }
 
 // Return the combined status of the shutters
-State domeStatus()
-{
+State domeStatus() {
     bool closed = true;
     State st;
 
@@ -170,51 +170,44 @@ State domeStatus()
 }
 
 // Open main shutter only
-void cmdOpenShutter()
-{
+void cmdOpenShutter() {
     lastCmdTime = millis();
     shutters[0].open();
 }
 
 // Open shutters
-void cmdOpenBoth()
-{
+void cmdOpenBoth() {
     lastCmdTime = millis();
     for (int i = 0; i < LEN(shutters); i++)
         shutters[i].open();
 }
 
 // Close shutters
-void cmdClose()
-{
+void cmdClose() {
     lastCmdTime = millis();
     for (int i = 0; i < LEN(shutters); i++)
         shutters[i].close();
 }
 
-void cmdAbort()
-{
+void cmdAbort() {
     lastCmdTime = millis();
     for (int i = 0; i < LEN(shutters); i++)
         shutters[i].abort();
 }
 
-void cmdExit()
-{
+void cmdExit() {
     lastCmdTime = 0;
     for (int i = 0; i < LEN(shutters); i++)
         shutters[i].close();
 }
 
-void cmdStatus()
-{
+void cmdStatus() {
     lastCmdTime = millis();
     State st = domeStatus();
     Serial.write('0' + st);
 }
 
-void cmdGetVBat()
-{
+void cmdGetVBat() {
     lastCmdTime = millis();
     int val = analogRead(VBAT);
     char buffer[8];
@@ -222,8 +215,7 @@ void cmdGetVBat()
     Serial.write(buffer);
 }
 
-void setup()
-{
+void setup() {
     wdt_disable();
     wdt_enable(WDTO_1S);
 
@@ -253,15 +245,14 @@ void setup()
 }
 
 
-void loop()
-{
+void loop() {
 #ifdef ANALOG_BUTTONS
     int btn = readAnalogButtons(BTNX);
 #else
     int btn = readDigitalButtons();
 #endif
 
-    switch(btn) {
+    switch (btn) {
     case BTN_A_OPEN:
         shutters[0].open();
         break;

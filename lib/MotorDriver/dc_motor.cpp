@@ -10,8 +10,7 @@ Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 #include "dc_motor.h"
 
 
-DCMotor::DCMotor(int pin1, int pin2)
-{
+DCMotor::DCMotor(int pin1, int pin2) {
     DCMotor::pin1 = pin1;
     DCMotor::pin2 = pin2;
     pinMode(pin1, OUTPUT);
@@ -19,31 +18,26 @@ DCMotor::DCMotor(int pin1, int pin2)
     stop();
 }
 
-void DCMotor::run(bool dir, int pwm)
-{
+void DCMotor::run(bool dir, int pwm) {
     // PWM not implemented
     digitalWrite(pin1, dir);
     digitalWrite(pin2, !dir);
 }
 
-void DCMotor::stop()
-{
+void DCMotor::stop() {
     digitalWrite(pin1, LOW);
     digitalWrite(pin2, LOW);
 }
 
-void DCMotor::brake()
-{
+void DCMotor::brake() {
     stop();
 }
 
-bool DCMotor::isRunning()
-{
+bool DCMotor::isRunning() {
     return digitalRead(pin1) || digitalRead(pin2);
 }
 
-int DCMotor::readCurrent()
-{
+int DCMotor::readCurrent() {
     // Not implemented
     return 0;
 }

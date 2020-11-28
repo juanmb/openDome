@@ -12,7 +12,7 @@ Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 
 // Virtual Motor class
 class MotorDriver {
-public:
+  public:
     virtual void run(bool dir, int pwm);
     virtual void stop();
     virtual void brake();

@@ -32,8 +32,7 @@ int cspin[2] = {CS1, CS2}; // Current sense (analog inputs)
 int enpin[2] = {EN1, EN2}; // Status of switches output (analog pin)
 
 
-MMSMotor::MMSMotor(int n)
-{
+MMSMotor::MMSMotor(int n) {
     // _nmotor can be only 0 or 1
     _nmotor = (n > 0);
     pinMode(inApin[_nmotor], OUTPUT);
@@ -42,33 +41,28 @@ MMSMotor::MMSMotor(int n)
     stop();
 }
 
-void MMSMotor::run(bool dir, int pwm)
-{
+void MMSMotor::run(bool dir, int pwm) {
     digitalWrite(inApin[_nmotor], dir);
     digitalWrite(inBpin[_nmotor], !dir);
     analogWrite(pwmpin[_nmotor], pwm);
 }
 
-void MMSMotor::stop()
-{
+void MMSMotor::stop() {
     digitalWrite(inApin[_nmotor], LOW);
     digitalWrite(inBpin[_nmotor], LOW);
     analogWrite(pwmpin[_nmotor], 0);
 }
 
-void MMSMotor::brake()
-{
+void MMSMotor::brake() {
     digitalWrite(inApin[_nmotor], HIGH);
     digitalWrite(inBpin[_nmotor], HIGH);
     analogWrite(pwmpin[_nmotor], 0);
 }
 
-bool MMSMotor::isRunning()
-{
+bool MMSMotor::isRunning() {
     return digitalRead(inApin[_nmotor]) || digitalRead(inBpin[_nmotor]);
 }
 
-int MMSMotor::readCurrent()
-{
+int MMSMotor::readCurrent() {
     return analogRead(cspin[_nmotor]);
 }

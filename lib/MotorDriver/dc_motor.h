@@ -13,14 +13,14 @@ Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 
 // Generic DC motor driver
 class DCMotor : public MotorDriver {
-public:
+  public:
     DCMotor(int pin1, int pin2);
     void run(bool dir, int pwm);
     void stop();
     void brake();
     bool isRunning();
     int readCurrent();
-private:
+  private:
     int pin1, pin2;
 };
 

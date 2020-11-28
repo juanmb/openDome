@@ -10,15 +10,14 @@
 #include "shutter.h"
 #include <util/atomic.h>
 
-#define MOTOR_OPEN 0
+#define MOTOR_OPEN  0
 #define MOTOR_CLOSE 1
-#define SPEED 1023
+#define SPEED       1023
 
-#define OPEN_SW_ACTIVE_HIGH 1   // "Open" switch is active HIGH
-#define CLOSED_SW_ACTIVE_HIGH   1   // "Closed" switch is active HIGH
+#define OPEN_SW_ACTIVE_HIGH   1   // "Open" switch is active HIGH
+#define CLOSED_SW_ACTIVE_HIGH 1   // "Closed" switch is active HIGH
 
-bool noInterference(State st)
-{
+bool noInterference(State st) {
     return false;
 }
 
@@ -29,8 +28,7 @@ bool noInterference(State st)
 // timeout: timeout in ms
 // swInt: Interference switch
 Shutter::Shutter(MotorDriver *motorPtr, int closedSwitch, int openSwitch,
-		unsigned long timeout, interFn checkInterference)
-{
+                 unsigned long timeout, interFn checkInterference) {
     motor = motorPtr;
     swClosed = closedSwitch;
     swOpen = openSwitch;
@@ -41,13 +39,11 @@ Shutter::Shutter(MotorDriver *motorPtr, int closedSwitch, int openSwitch,
 }
 
 
-inline bool Shutter::isOpen()
-{
+inline bool Shutter::isOpen() {
     return (digitalRead(swOpen) == OPEN_SW_ACTIVE_HIGH);
 }
 
-inline bool Shutter::isClosed()
-{
+inline bool Shutter::isClosed() {
     return (digitalRead(swClosed) == CLOSED_SW_ACTIVE_HIGH);
 }
 
@@ -57,8 +53,7 @@ inline bool Shutter::isClosed()
 // sw2: Limit switch (fully open)
 // timeout: timeout in ms
 Shutter::Shutter(MotorDriver *motorPtr, int closedSwitch,
-		int openSwitch, unsigned long timeout)
-{
+                 int openSwitch, unsigned long timeout) {
     motor = motorPtr;
     swClosed = closedSwitch;    // normally closed (1 if shutter is closed)
     swOpen = openSwitch;        // normally open (0 if shutter is fully open)
@@ -69,8 +64,7 @@ Shutter::Shutter(MotorDriver *motorPtr, int closedSwitch,
 }
 
 
-void Shutter::initState()
-{
+void Shutter::initState() {
     if (isClosed())
         state = ST_CLOSED;
     else if (isOpen())
@@ -80,30 +74,25 @@ void Shutter::initState()
 }
 
 
-void Shutter::open()
-{
+void Shutter::open() {
     nextAction = DO_OPEN;
 }
 
-void Shutter::close()
-{
+void Shutter::close() {
     nextAction = DO_CLOSE;
 }
 
-void Shutter::abort()
-{
+void Shutter::abort() {
     nextAction = DO_ABORT;
 }
 
-State Shutter::getState()
-{
+State Shutter::getState() {
     return state;
 }
 
 
 // Shutter state machine
-void Shutter::update()
-{
+void Shutter::update() {
     Action action;
     static unsigned long t0;
 
@@ -130,8 +119,7 @@ void Shutter::update()
         if (action == DO_OPEN) {
             t0 = millis();
             state = ST_OPENING;
-        }
-        else if (action == DO_CLOSE) {
+        } else if (action == DO_CLOSE) {
             t0 = millis();
             state = ST_CLOSING;
         }
@@ -145,12 +133,10 @@ void Shutter::update()
         if (isOpen()) {
             state = ST_OPEN;
             motor->brake();
-        }
-        else if (action == DO_ABORT || action == DO_CLOSE) {
+        } else if (action == DO_ABORT || action == DO_CLOSE) {
             state = ST_ABORTED;
             motor->brake();
-        }
-        else if (millis() - t0 > runTimeout) {
+        } else if (millis() - t0 > runTimeout) {
             state = ST_ERROR;
             motor->brake();
         }
@@ -164,12 +150,10 @@ void Shutter::update()
         if (isClosed()) {
             state = ST_CLOSED;
             motor->brake();
-        }
-        else if (action == DO_ABORT || action == DO_OPEN) {
+        } else if (action == DO_ABORT || action == DO_OPEN) {
             state = ST_ABORTED;
             motor->brake();
-        }
-        else if (millis() - t0 > runTimeout) {
+        } else if (millis() - t0 > runTimeout) {
             state = ST_ERROR;
             motor->brake();
         }

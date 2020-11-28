@@ -14,14 +14,14 @@ Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 
 // Monster Motor Shield driver
 class MMSMotor : public MotorDriver {
-public:
+  public:
     MMSMotor(int nmotor);
     void run(bool dir, int pwm);
     void stop();
     void brake();
     bool isRunning();
     int readCurrent();
-private:
+  private:
     uint8_t _nmotor;
 };
 

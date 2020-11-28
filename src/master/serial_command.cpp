@@ -10,29 +10,24 @@
 #include "serial_command.h"
 
 
-SerialCommand::SerialCommand(Stream *dev)
-{
+SerialCommand::SerialCommand(Stream *dev) {
     stream = dev;
     nCommands = 0;
     cmdSize = 0;
     bufPos = 0;
 }
 
-uint8_t SerialCommand::getCRC(uint8_t *cmd, uint8_t length)
-{
+uint8_t SerialCommand::getCRC(uint8_t *cmd, uint8_t length) {
     char crc = 0;
 
-    for (int i = 1; i <= length; i++) {
+    for (int i = 1; i <= length; i++)
         crc -= cmd[i];
-    }
     return crc;
 }
 
-int SerialCommand::addCommand(const uint8_t id, uint8_t size, cbFunction function)
-{
-    if (nCommands >= MAX_COMMANDS) {
+int SerialCommand::addCommand(const uint8_t id, uint8_t size, cbFunction function) {
+    if (nCommands >= MAX_COMMANDS)
         return 1;
-    }
 
     commandList[nCommands].id = id;
     commandList[nCommands].size = size;
@@ -41,8 +36,7 @@ int SerialCommand::addCommand(const uint8_t id, uint8_t size, cbFunction functio
     return 0;
 }
 
-void SerialCommand::readSerial()
-{
+void SerialCommand::readSerial() {
     while (stream->available()) {
         char c = stream->read();
 
@@ -66,8 +60,7 @@ void SerialCommand::readSerial()
             for (int i = 0; i < nCommands; i++) {
                 if (commandList[i].id == c) {
                     // check command size
-                    if (cmdSize != commandList[i].size) {
-                    }
+                    if (cmdSize != commandList[i].size) { }
                     cmdFunction = commandList[i].function;
                     break;
                 }
@@ -85,11 +78,9 @@ void SerialCommand::readSerial()
     }
 }
 
-void SerialCommand::sendResponse(uint8_t *cmd, uint8_t length)
-{
+void SerialCommand::sendResponse(uint8_t *cmd, uint8_t length) {
     cmd[length - 1] = getCRC(cmd, length - 2);
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++)
         stream->write(cmd[i]);
-    }
 }

@@ -34,7 +34,7 @@ typedef bool (*interFn)(State st);
 
 
 class Shutter {
-public:
+  public:
     Shutter(MotorDriver *motor, int closedSwitch, int openSwitch, unsigned long timeout,
             interFn checkInterference);
     Shutter(MotorDriver *motor, int closedSwitch, int openSwitch, unsigned long timeout);
@@ -43,7 +43,7 @@ public:
     void abort();
     void update();
     State getState();
-private:
+  private:
     bool isOpen();
     bool isClosed();
     interFn interference;

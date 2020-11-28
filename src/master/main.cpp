@@ -42,7 +42,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //#define USE_BUTTONS   // Uncomment if you want to move the dome with push buttons
 
 #ifndef ENCODER_DIV
-#define ENCODER_DIV 	1 	// Encoder divider ratio
+#define ENCODER_DIV     1   // Encoder divider ratio
 #endif
 
 #ifndef AZ_TIMEOUT
@@ -50,16 +50,16 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #endif
 
 #ifndef AZ_TOLERANCE
-#define AZ_TOLERANCE    4      	// Azimuth target tolerance in encoder ticks
+#define AZ_TOLERANCE    4       // Azimuth target tolerance in encoder ticks
 #endif
 
 #ifndef AZ_SLOW_RANGE
-#define AZ_SLOW_RANGE   8       // The motor will run at slower speed when the
-                                // dome is at this number of ticks from the target
+// The motor will run at slower speed when the dome is at this number of ticks from the target
+#define AZ_SLOW_RANGE   8
 #endif
 
-//#define DEBOUNCE_MS     10    // Discard encoder pulses shorter than this duration
-                                // (in milliseconds)
+// Discard encoder pulses shorter than this duration (in milliseconds)
+//#define DEBOUNCE_MS     10
 
 // pin definitions
 #define ENCODER1 2      // Encoder
@@ -100,7 +100,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 
 // Shutter commands
 #define OPEN_SHUTTER        0x01
-#define OPEN_UPPER_SHUTTER	0x02
+#define OPEN_UPPER_SHUTTER  0x02
 #define CLOSE_SHUTTER       0x03
 #define EXIT_SHUTTER        0x04 // Command sent to shutter on program exit
 #define ABORT_SHUTTER       0x07
@@ -124,7 +124,7 @@ SoftwareSerial HC12(HC12_TX, HC12_RX);
 #endif
 
 SerialCommand sCmd(&Serial);
-
+//
 #ifdef MOTOR_SHIELD
 MMSMotor motor(0);
 #else
@@ -135,62 +135,56 @@ Dome dome(&HC12, &motor);
 
 
 // Convert two bytes to a uint16_t value (big endian)
-uint16_t bytesToInt(uint8_t *data)
-{
+uint16_t bytesToInt(uint8_t *data) {
     uint16_t value1 = data[1];
     uint16_t value2 = data[0];
     return (value1 & 0xff) | ((value2 << 8) & 0xff00);
 }
 
 // Convert a uint16_t value to bytes (big endian)
-void intToBytes(uint16_t value, uint8_t *data)
-{
+void intToBytes(uint16_t value, uint8_t *data) {
     data[1] = value & 0xff;
     data[0] = (value >> 8) & 0xff;
 }
 
 
-void cmdAbort(uint8_t *cmd)
-{
-	dome.abort();
+void cmdAbort(uint8_t *cmd) {
+    dome.abort();
     uint8_t resp[] = {START, 2, TO_COMPUTER | ABORT_CMD, 0x00};
     sCmd.sendResponse(resp, 4);
 }
 
-void cmdHomeAzimuth(uint8_t *cmd)
-{
-	dome.home();
+void cmdHomeAzimuth(uint8_t *cmd) {
+    dome.home();
     uint8_t resp[] = {START, 3, TO_COMPUTER | HOME_CMD, 0x01, 0x00};
     sCmd.sendResponse(resp, 5);
 }
 
-void cmdGotoAzimuth(uint8_t *cmd)
-{
-	// direction field is ignored!
+void cmdGotoAzimuth(uint8_t *cmd) {
+    // direction field is ignored!
     uint16_t target = bytesToInt(cmd + 4);
-	dome.gotoAzimuth(target);
+    dome.gotoAzimuth(target);
 
     uint8_t resp[] = {START, 3, TO_COMPUTER | GOTO_CMD, 0x01, 0x00};
     sCmd.sendResponse(resp, 5);
 }
 
-void cmdShutterCommand(uint8_t *cmd)
-{
-    switch(cmd[3]) {
+void cmdShutterCommand(uint8_t *cmd) {
+    switch (cmd[3]) {
     case OPEN_SHUTTER:
-		dome.openShutter(SEL_BOTH);
+        dome.openShutter(SEL_BOTH);
         break;
     case OPEN_UPPER_SHUTTER:
-		dome.openShutter(SEL_UPPER);
+        dome.openShutter(SEL_UPPER);
         break;
     case CLOSE_SHUTTER:
-		dome.closeShutter(SEL_BOTH);
+        dome.closeShutter(SEL_BOTH);
         break;
     case EXIT_SHUTTER:
-		dome.exitShutters();
+        dome.exitShutters();
         break;
     case ABORT_SHUTTER:
-		dome.abortShutters();
+        dome.abortShutters();
         break;
     }
 
@@ -198,61 +192,55 @@ void cmdShutterCommand(uint8_t *cmd)
     sCmd.sendResponse(resp, 4);
 }
 
-void cmdStatus(uint8_t *cmd)
-{
-	DomeStatus status = dome.getStatus();
+void cmdStatus(uint8_t *cmd) {
+    DomeStatus status = dome.getStatus();
 
     MDAzimuthStatus az_st;
-    if (status.az_state == ST_IDLE) {
+    if (status.az_state == ST_IDLE)
         az_st = AS_IDLE;
-    }
-    else if (status.az_state == ST_ERROR) {
+    else if (status.az_state == ST_ERROR)
         az_st = AS_ERROR;
-    }
     else {
-		if (status.dir == DIR_CW)
-			az_st = AS_MOVING_CW;
-		else
-			az_st = AS_MOVING_CCW;
+        if (status.dir == DIR_CW)
+            az_st = AS_MOVING_CW;
+        else
+            az_st = AS_MOVING_CCW;
     }
 
     uint8_t resp[] = {
-		START, 9, TO_COMPUTER | STATUS_CMD, status.sh_state,
-		az_st, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00
-	};
+        START, 9, TO_COMPUTER | STATUS_CMD, status.sh_state,
+        az_st, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00
+    };
 
-	intToBytes(status.pos, resp + 5);
-	intToBytes(status.home_pos, resp + 7);
+    intToBytes(status.pos, resp + 5);
+    intToBytes(status.home_pos, resp + 7);
 
     sCmd.sendResponse(resp, 11);
 }
 
-void cmdSetPark(uint8_t *cmd)
-{
-	DomeConf conf = dome.getConf();
+void cmdSetPark(uint8_t *cmd) {
+    DomeConf conf = dome.getConf();
     conf.park_on_shutter = cmd[3];
     conf.park_pos = bytesToInt(cmd + 4);
-	dome.setConf(conf);
-	EEPROM.put(0, conf);
+    dome.setConf(conf);
+    EEPROM.put(0, conf);
 
     uint8_t resp[] = {START, 2, TO_COMPUTER | SETPARK_CMD, 0x00};
     sCmd.sendResponse(resp, 4);
 }
 
-void cmdSetTicks(uint8_t *cmd)
-{
-	DomeConf conf = dome.getConf();
+void cmdSetTicks(uint8_t *cmd) {
+    DomeConf conf = dome.getConf();
     conf.ticks_per_turn = bytesToInt(cmd + 3);
-	dome.setConf(conf);
-	EEPROM.put(0, conf);
+    dome.setConf(conf);
+    EEPROM.put(0, conf);
 
     uint8_t resp[] = {START, 2, TO_COMPUTER | TICKS_CMD, 0x00};
     sCmd.sendResponse(resp, 4);
 }
 
-void cmdVBat(uint8_t *cmd)
-{
+void cmdVBat(uint8_t *cmd) {
     int vbat = dome.getBatteryVolts() * 100;
 
     uint8_t resp[] = {START, 4, TO_COMPUTER | VBAT_CMD, 0x00, 0x00, 0x00};
@@ -260,15 +248,13 @@ void cmdVBat(uint8_t *cmd)
     sCmd.sendResponse(resp, 6);
 }
 
-void cmdAck(uint8_t *cmd)
-{
+void cmdAck(uint8_t *cmd) {
     uint8_t resp[] = {START, 3, TO_COMPUTER | ACK_CMD, 0x03, 0x00};
     sCmd.sendResponse(resp, 5);
 }
 
 // Encoder interrupt service routine
-void encoderISR()
-{
+void encoderISR() {
 #ifdef DEBOUNCE_MS
     // debounce encoder signal
     static unsigned long now, last;
@@ -278,14 +264,13 @@ void encoderISR()
     last = now;
 #endif
 
-    if(digitalRead(ENCODER1) == digitalRead(ENCODER2))
-		dome.tick(DIR_CCW);
+    if (digitalRead(ENCODER1) == digitalRead(ENCODER2))
+        dome.tick(DIR_CCW);
     else
-		dome.tick(DIR_CW);
+        dome.tick(DIR_CW);
 }
 
-void setup()
-{
+void setup() {
     wdt_disable();
     wdt_enable(WDTO_2S);
 
@@ -305,13 +290,13 @@ void setup()
 
     attachInterrupt(digitalPinToInterrupt(ENCODER1), encoderISR, CHANGE);
 
-	DomeConf conf;
-	EEPROM.get(0, conf);
-	conf.nshutters = NSHUTTERS;
-	conf.tolerance = AZ_TOLERANCE;
-	conf.az_timeout = (uint8_t)AZ_TIMEOUT;
-	conf.encoder_div = ENCODER_DIV;
-	dome.setConf(conf);
+    DomeConf conf;
+    EEPROM.get(0, conf);
+    conf.nshutters = NSHUTTERS;
+    conf.tolerance = AZ_TOLERANCE;
+    conf.az_timeout = (uint8_t)AZ_TIMEOUT;
+    conf.encoder_div = ENCODER_DIV;
+    dome.setConf(conf);
 
     Serial.begin(BAUDRATE);
 
@@ -321,8 +306,7 @@ void setup()
 }
 
 // move the dome when the buttons are pressed
-void read_buttons()
-{
+void read_buttons() {
     static int prev_cw_button = 0, prev_ccw_button = 0;
     int cw_button = !digitalRead(BUTTON_CW);
     int ccw_button = !digitalRead(BUTTON_CCW);
@@ -330,19 +314,18 @@ void read_buttons()
     if (cw_button != prev_cw_button) {
         if (cw_button) {
             digitalWrite(LED_BUILTIN, HIGH);
-			dome.moveAzimuth(DIR_CW);
+            dome.moveAzimuth(DIR_CW);
         } else {
             digitalWrite(LED_BUILTIN, LOW);
-			dome.stopAzimuth();
+            dome.stopAzimuth();
         }
-    }
-    else if (ccw_button != prev_ccw_button) {
+    } else if (ccw_button != prev_ccw_button) {
         if (ccw_button) {
             digitalWrite(LED_BUILTIN, HIGH);
-			dome.moveAzimuth(DIR_CCW);
+            dome.moveAzimuth(DIR_CCW);
         } else {
             digitalWrite(LED_BUILTIN, LOW);
-			dome.stopAzimuth();
+            dome.stopAzimuth();
         }
     }
     prev_cw_button = cw_button;
@@ -350,8 +333,7 @@ void read_buttons()
 }
 
 
-void loop()
-{
+void loop() {
     sCmd.readSerial();
     dome.update();
 
