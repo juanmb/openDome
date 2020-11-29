@@ -1,11 +1,3 @@
-/******************************************************************
-    Author:     Juan Menendez Blanco    <juanmb@gmail.com>
-
-    This code is part of the ArduinoDomeController project:
-        https://github.com/juanmb/ArduinoDomeController
-
-*******************************************************************/
-
 #ifndef _shutter_h_
 #define _shutter_h_
 

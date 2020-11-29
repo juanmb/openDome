@@ -1,11 +1,3 @@
-/******************************************************************
-    Author:     Juan Menendez Blanco    <juanmb@gmail.com>
-
-    This code is part of the ArduinoDomeController project:
-        https://github.com/juanmb/ArduinoDomeController
-
-*******************************************************************/
-
 #include <Arduino.h>
 #include "shutter.h"
 #include <util/atomic.h>

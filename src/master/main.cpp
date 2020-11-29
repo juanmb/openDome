@@ -1,7 +1,5 @@
 /*******************************************************************************
-ArduinoDomeController
-Azimuth control of an astronomical dome using Arduino
-
+openDome
 
 The MIT License
 
@@ -46,7 +44,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #endif
 
 #ifndef AZ_TIMEOUT
-#define AZ_TIMEOUT      60000   // Azimuth movement timeout (in ms)
+#define AZ_TIMEOUT      2000   // Azimuth movement timeout (in ms)
 #endif
 
 #ifndef AZ_TOLERANCE
@@ -78,7 +76,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #endif
 
 // motor pins (if not using the Monster Motor Shield)
-#define MOTOR_CW 8      // Move motor clockwise
+#define MOTOR_CW  8     // Move motor clockwise
 #define MOTOR_CCW 9     // Move motor counterclockwise
 
 #define BAUDRATE 19200
@@ -122,21 +120,15 @@ void read_buttons() {
     int ccw_button = !digitalRead(BUTTON_CCW);
 
     if (cw_button != prev_cw_button) {
-        if (cw_button) {
-            digitalWrite(LED_BUILTIN, HIGH);
+        if (cw_button)
             dome.moveAzimuth(DIR_CW);
-        } else {
-            digitalWrite(LED_BUILTIN, LOW);
+        else
             dome.stopAzimuth();
-        }
     } else if (ccw_button != prev_ccw_button) {
-        if (ccw_button) {
-            digitalWrite(LED_BUILTIN, HIGH);
+        if (ccw_button)
             dome.moveAzimuth(DIR_CCW);
-        } else {
-            digitalWrite(LED_BUILTIN, LOW);
+        else
             dome.stopAzimuth();
-        }
     }
     prev_cw_button = cw_button;
     prev_ccw_button = ccw_button;
@@ -157,8 +149,9 @@ void setup() {
     EEPROM.get(0, conf);
     conf.nshutters = NSHUTTERS;
     conf.tolerance = AZ_TOLERANCE;
-    conf.az_timeout = (uint8_t)AZ_TIMEOUT;
+    conf.az_timeout = AZ_TIMEOUT;
     conf.encoder_div = ENCODER_DIV;
+    conf.ticks_per_turn = 786;
     dome.setConf(conf);
 
     Serial.begin(BAUDRATE);

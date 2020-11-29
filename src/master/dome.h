@@ -44,19 +44,24 @@ enum AzimuthEvent {
 };
 
 enum ShutterSel {
-    SEL_LOWER,
+    SEL_BOTH,
     SEL_UPPER,
-    SEL_BOTH
+    SEL_LOWER
+};
+
+enum AfterPark {
+    AFTER_PARK_CLOSE,
+    AFTER_PARK_OPEN
 };
 
 typedef struct DomeConf {
     uint16_t ticks_per_turn;    // encoder ticks per dome rotation
     uint16_t tolerance;         // position tolerance in ticks
     uint16_t park_pos;          // parking postion
+    uint16_t az_timeout;        // timeout in seconds
     uint8_t park_on_shutter;    // park dome before operating shutter
     uint8_t encoder_div;        // encoder divider
     uint8_t nshutters;          // number of shutters
-    uint8_t az_timeout;         // timeout in seconds
 } DomeConf;
 
 
@@ -74,10 +79,8 @@ class Dome {
     void setConf(DomeConf cfg) {
         conf = cfg;
     };
-    DomeConf getConf() {
-        return conf;
-    };
-    DomeStatus getStatus();
+    void getConf(DomeConf *cfg);
+    void getStatus(DomeStatus *status);
 
     void tick(Direction dir);  // call this method from the encoder ISR
     void update();          // Call this method periodically from the main loop
@@ -99,9 +102,14 @@ class Dome {
   private:
     void moveMotor(Direction dir);
     void stopMotor();
+    void open(ShutterSel);
+    void close(ShutterSel);
     Direction getDirection(uint16_t target);
-    uint16_t getDistance(uint16_t target);
+    uint16_t distanceTo(uint16_t target);
     ShutterState getShutterState();
+
+    void startAzTimeout();
+    bool checkAzTimeout();
 
     MotorDriver *driver;    // Azimuth motor driver
     Stream *sstream;        // Serial stream of shutters board
@@ -109,12 +117,10 @@ class Dome {
     DomeConf conf;
     AzimuthState state = ST_IDLE;
     AzimuthEvent event = EVT_NONE;
-    bool home_reached = false;
-    Direction current_dir;
-    uint16_t home_pos = 0;
-    uint16_t next_target = 0;
-    uint16_t target = 0;
-    uint16_t pos = 0;
+    Direction current_dir, move_dir;
+    uint16_t pos = 0, last_pos, target, next_target = 0, home_pos = 0;
+    unsigned long t0;
+    AfterPark after_park;
 };
 
 #endif
