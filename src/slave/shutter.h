@@ -1,7 +1,7 @@
 #ifndef _shutter_h_
 #define _shutter_h_
 
-#include "dc_motor.h"
+#include "motor_driver.h"
 
 // Lid states
 enum State {

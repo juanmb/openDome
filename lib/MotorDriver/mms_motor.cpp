@@ -1,13 +1,11 @@
 /*******************************************************************************
-Monster Motor Shield library
+Monster Moto Shield controller
 
 https://www.sparkfun.com/products/10182
-
-Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 *******************************************************************************/
 
 #include <Arduino.h>
-#include "monster_motor_shield.h"
+#include "mms_motor.h"
 
 // Arduino pins
 #define EN1 A0

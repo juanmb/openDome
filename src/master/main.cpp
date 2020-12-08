@@ -1,6 +1,4 @@
 /*******************************************************************************
-openDome
-
 The MIT License
 
 Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
@@ -28,7 +26,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #include <EEPROM.h>
 #include <avr/wdt.h>
 #include <SoftwareSerial.h>
-#include <monster_motor_shield.h>
+#include <mms_motor.h>
 #include <dc_motor.h>
 #include "maxdome_protocol.h"
 #include "dome.h"
@@ -36,7 +34,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 
 // Configuration
 //#define NSHUTTERS 2   // Uncomment if the shutter controller is available
-//#define MOTOR_SHIELD  // Uncomment if the motor driver is a Monster Motor Shield
+//#define MONSTER_SHIELD  // Uncomment if the motor driver is a Monster Moto Shield
 //#define USE_BUTTONS   // Uncomment if you want to move the dome with push buttons
 
 #ifndef ENCODER_DIV
@@ -66,8 +64,8 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define BUTTON_CCW  12  // CCW movement button (Active low)
 
 #if NSHUTTERS > 0
-#ifdef MOTOR_SHIELD
-#error "HAS_SHUTTER and MOTOR_SHIELD cannot be defined at the same time"
+#ifdef MONSTER_SHIELD
+#error "HAS_SHUTTER and MONSTER_SHIELD cannot be defined at the same time"
 #endif
 
 // pins of HC12 module (serial radio transceiver)
@@ -79,14 +77,12 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define MOTOR_CW  8     // Move motor clockwise
 #define MOTOR_CCW 9     // Move motor counterclockwise
 
-#define BAUDRATE 19200
-
 #if NSHUTTERS > 0
 // Create a Software Serial Port to communicate with the shutter controller
 SoftwareSerial HC12(HC12_TX, HC12_RX);
 #endif
 
-#ifdef MOTOR_SHIELD
+#ifdef MONSTER_SHIELD
 MMSMotor motor(0);
 #else
 DCMotor motor(MOTOR_CW, MOTOR_CCW);
@@ -154,7 +150,7 @@ void setup() {
     conf.ticks_per_turn = 786;
     dome.setConf(conf);
 
-    Serial.begin(BAUDRATE);
+    Serial.begin(MAXDOME_BAUDRATE);
 
 #if NSHUTTERS > 0
     HC12.begin(9600);   // Open serial port to HC12

@@ -1,9 +1,5 @@
 /*******************************************************************************
-Monster Motor Shield library
-
-https://www.sparkfun.com/products/10182
-
-Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
+Generic motor controller
 *******************************************************************************/
 
 #include <Arduino.h>

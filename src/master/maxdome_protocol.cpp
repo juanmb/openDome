@@ -133,13 +133,13 @@ void MaxDomeProtocol::cmdGotoAzimuth(uint8_t *cmd) {
 
 void MaxDomeProtocol::cmdShutterCommand(uint8_t *cmd) {
     switch (cmd[3]) {
-    case OPEN_SHUTTER:
+    case OPEN_BOTH:
         dome->openShutter(SEL_BOTH);
         break;
-    case OPEN_UPPER_SHUTTER:
+    case OPEN_UPPER:
         dome->openShutter(SEL_UPPER);
         break;
-    case CLOSE_SHUTTER:
+    case CLOSE_BOTH:
         dome->closeShutter(SEL_BOTH);
         break;
     case EXIT_SHUTTER:

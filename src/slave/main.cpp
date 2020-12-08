@@ -24,7 +24,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 
 #include <avr/wdt.h>
 #include <dc_motor.h>
-#include <monster_motor_shield.h>
+#include <mms_motor.h>
 #include "SerialCommand.h"
 #include "shutter.h"
 

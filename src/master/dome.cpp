@@ -136,12 +136,11 @@ void Dome::abort() {
 void Dome::open(ShutterSel sel) {
     if (sstream) {
         switch (sel) {
-        case SEL_BOTH:
-            digitalWrite(LED_BUILTIN, HIGH);
-            sstream->println("open");
+        case SEL_UPPER:
+            sstream->println("open1");
             break;
         default:
-            sstream->println("open1");
+            sstream->println("open");
             break;
         }
     }
@@ -162,12 +161,11 @@ void Dome::openShutter(ShutterSel sel) {
 void Dome::close(ShutterSel sel) {
     if (sstream) {
         switch (sel) {
-        case SEL_BOTH:
-            digitalWrite(LED_BUILTIN, LOW);
-            sstream->println("close");
+        case SEL_UPPER:
+            sstream->println("close1");
             break;
         default:
-            sstream->println("close1");
+            sstream->println("close");
             break;
         }
     }

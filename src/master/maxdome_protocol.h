@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include "dome.h"
 
-#define BAUDRATE 19200
+#define MAXDOME_BAUDRATE 19200
 
 #define MAX_CMD_SIZE 32
 #define START       0x01  // Start byte
@@ -25,12 +25,13 @@
 #define VBAT_CMD    0x0C // Read shutter's battery voltage
 
 // Shutter commands
-#define OPEN_SHUTTER        0x01
-#define OPEN_UPPER_SHUTTER  0x02
-#define CLOSE_SHUTTER       0x03
-#define EXIT_SHUTTER        0x04 // Command sent to shutter on program exit
-#define ABORT_SHUTTER       0x07
-
+enum ShutterCommand {
+    OPEN_BOTH = 1,
+    OPEN_UPPER,
+    CLOSE_BOTH,
+    EXIT_SHUTTER,
+    ABORT_SHUTTER = 7,
+};
 
 // MaxDome II azimuth status
 enum MDAzimuthStatus {

@@ -1,18 +1,15 @@
 /*******************************************************************************
-Monster Motor Shield library
+Monster Moto Shield driver
 
 https://www.sparkfun.com/products/10182
-
-Copyright (C) 2017 Juan Menendez <juanmb@gmail.com>
 *******************************************************************************/
 
-#ifndef _monster_motor_shield_h_
-#define _monster_motor_shield_h_
+#ifndef _mms_motor_h_
+#define _mms_motor_h_
 
 #include "dc_motor.h"
 
 
-// Monster Motor Shield driver
 class MMSMotor : public MotorDriver {
   public:
     MMSMotor(int nmotor);
