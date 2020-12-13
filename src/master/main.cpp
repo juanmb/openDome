@@ -54,6 +54,10 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define AZ_SLOW_RANGE   8
 #endif
 
+#ifndef NSHUTTERS
+#define NSHUTTERS    0
+#endif
+
 // Discard encoder pulses shorter than this duration (in milliseconds)
 //#define DEBOUNCE_MS     10
 
@@ -67,20 +71,15 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #ifdef MONSTER_SHIELD
 #error "HAS_SHUTTER and MONSTER_SHIELD cannot be defined at the same time"
 #endif
+#endif
 
 // pins of HC12 module (serial radio transceiver)
 #define HC12_RX 4       // Receive Pin on HC12
 #define HC12_TX 5       // Transmit Pin on HC12
-#endif
 
 // motor pins (if not using the Monster Motor Shield)
 #define MOTOR_CW  8     // Move motor clockwise
 #define MOTOR_CCW 9     // Move motor counterclockwise
-
-#if NSHUTTERS > 0
-// Create a Software Serial Port to communicate with the shutter controller
-SoftwareSerial HC12(HC12_TX, HC12_RX);
-#endif
 
 #ifdef MONSTER_SHIELD
 MMSMotor motor(0);
@@ -88,7 +87,14 @@ MMSMotor motor(0);
 DCMotor motor(MOTOR_CW, MOTOR_CCW);
 #endif
 
+#if NSHUTTERS > 0
+// Create a Software Serial Port to communicate with the shutter controller
+SoftwareSerial HC12(HC12_TX, HC12_RX);
 Dome dome(&HC12, &motor);
+#else
+Dome dome(NULL, &motor);
+#endif
+
 MaxDomeProtocol protoc(&Serial, &dome);
 
 // Encoder interrupt service routine
