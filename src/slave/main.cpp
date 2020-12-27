@@ -25,21 +25,34 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #include <avr/wdt.h>
 #include <dc_motor.h>
 #include <mms_motor.h>
+#include <keypad.h>
 #include "SerialCommand.h"
 #include "shutter.h"
 
+#define LEN(a) ((int)(sizeof(a)/sizeof(*a)))
+
 // Pin definitions
-#define SW_A1    12     // shutter closed switch (NC)
-#define SW_A2    11     // shutter open switch (NO)
-#define SW_B1    10     // flap closed switch (NC)
-#define SW_B2    3      // flap open switch (NO)
-#define SW_INT   2      // shutter interference detection switch (NC)
-#define MOTOR_A1 8      // motor driver pin 1
-#define MOTOR_A2 9      // motor driver pin 2
-#define BTNX     A4     // analog input for reading the buttons
-#define BTN1     A6     // 'open' button
-#define BTN2     A7     // 'close' button
-#define VBAT     A5     // battery voltage reading
+#define SW_A1       12      // shutter closed switch (NC)
+#define SW_A2       11      // shutter open switch (NO)
+#define SW_B1       10      // flap closed switch (NC)
+#define SW_B2       3       // flap open switch (NO)
+#define SW_INT      2       // shutter interference detection switch (NC)
+#define MOTOR_A1    8       // motor driver pin 1
+#define MOTOR_A2    9       // motor driver pin 2
+#define KEYPAD      A4      // analog keypad input
+#define VBAT        A5      // battery voltage reading
+
+// Digital keypad pins
+int key_pins[] = {A4, A6, A7};  // 'abort', 'open' and 'close' buttons
+
+// Analog keypad threshold values
+int key_thresholds[] = {92, 303, 518, 820};
+
+enum KeyIDs {
+    KEY_ABORT,
+    KEY_OPEN,
+    KEY_CLOSE,
+};
 
 // Timeouts in ms
 #ifndef COMMAND_TIMEOUT
@@ -57,19 +70,6 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define FLAP_TIMEOUT 15000
 #endif
 
-// Number of ADC readings required to detect a pressed button
-#define BUTTON_REPS 4
-
-#define LEN(a) ((int)(sizeof(a)/sizeof(*a)))
-
-enum {
-    BTN_NONE,
-    BTN_A_OPEN,
-    BTN_A_CLOSE,
-    BTN_B_OPEN,
-    BTN_B_CLOSE,
-};
-
 // Detect mechanical interfence between the two shutters
 bool checkFlapInter(State st) {
     return (st == ST_OPENING) && digitalRead(SW_INT);
@@ -84,7 +84,7 @@ bool checkShutInter(State st) {
 // Single shutter with a generic motor driver
 DCMotor motorA(MOTOR_A1, MOTOR_A2);
 #else
-// Two shutters controlled by a Monster Motor Shield
+// Two shutters controlled by a Monster Moto Shield
 MMSMotor motorA(0);
 MMSMotor motorB(1);
 #endif
@@ -101,50 +101,6 @@ Shutter shutters[] = {
 SerialCommand sCmd;
 unsigned long lastCmdTime = 0;
 
-
-// Detect a pressed button by reading an analog input.
-// Every button puts a different voltage at the input.
-// A button is considered active after BUTTON_REPS succesive readings.
-int readAnalogButtons(int pin) {
-    static int btn_prev = 0, btn_count = 0;
-
-    int buttonLimits[] = {92, 303, 518, 820};
-    int val = analogRead(pin);
-
-    int btn = BTN_NONE;
-    for (int i = 0; i < LEN(buttonLimits); i++) {
-        if (val < buttonLimits[i]) {
-            btn = i + 1;
-            break;
-        }
-    }
-
-    if (btn && (btn == btn_prev))
-        btn_count++;
-    else
-        btn_count = 0;
-    btn_prev = btn;
-
-    if (btn_count == BUTTON_REPS)
-        return btn;
-    return 0;
-}
-
-int readDigitalButtons() {
-    static int btn1_prev = 1, btn2_prev = 1;
-    int btn1 = digitalRead(BTN1);
-    int btn2 = digitalRead(BTN2);
-    int btn = BTN_NONE;
-
-    if (!btn1 && btn1_prev)
-        btn = BTN_A_OPEN;
-    else if (!btn2 && btn2_prev)
-        btn = BTN_A_CLOSE;
-
-    btn1_prev = btn1;
-    btn2_prev = btn2;
-    return btn;
-}
 
 // Return the combined status of the shutters
 State domeStatus() {
@@ -215,6 +171,28 @@ void cmdGetVBat() {
     Serial.write(buffer);
 }
 
+// Manage keypad events
+void keypadHandler(const KeyMsg &msg) {
+    if (msg.event == KEY_EVT_RELEASE) {
+        switch (msg.key_id) {
+        case KEY_OPEN:
+            cmdOpenBoth();
+            break;
+        case KEY_CLOSE:
+            cmdClose();
+            break;
+        default:
+            cmdAbort();
+        }
+    }
+}
+
+#ifdef ANALOG_KEYPAD
+AnalogKeypad keypad(KEYPAD, LEN(key_thresholds), key_thresholds, keypadHandler);
+#else
+DigitalKeypad keypad(key_pins, LEN(key_pins), keypadHandler);
+#endif
+
 void setup() {
     wdt_disable();
     wdt_enable(WDTO_1S);
@@ -225,8 +203,6 @@ void setup() {
     pinMode(SW_B1, INPUT_PULLUP);
     pinMode(SW_B2, INPUT_PULLUP);
     pinMode(SW_INT, INPUT_PULLUP);
-    pinMode(BTN1, INPUT_PULLUP);
-    pinMode(BTN2, INPUT_PULLUP);
 
     // Map serial commands to functions
     sCmd.addCommand("open", cmdOpenBoth);
@@ -246,29 +222,6 @@ void setup() {
 
 
 void loop() {
-#ifdef ANALOG_BUTTONS
-    int btn = readAnalogButtons(BTNX);
-#else
-    int btn = readDigitalButtons();
-#endif
-
-    switch (btn) {
-    case BTN_A_OPEN:
-        shutters[0].open();
-        break;
-    case BTN_A_CLOSE:
-        shutters[0].close();
-        break;
-    case BTN_B_OPEN:
-        if (LEN(shutters) > 1)
-            shutters[1].open();
-        break;
-    case BTN_B_CLOSE:
-        if (LEN(shutters) > 1)
-            shutters[1].close();
-        break;
-    }
-
     State st = domeStatus();
 
     // switch on the LED if there is an error
@@ -287,6 +240,7 @@ void loop() {
         shutters[i].update();
 
     sCmd.readSerial();
+    keypad.update();
     wdt_reset();
     delay(25);
 }

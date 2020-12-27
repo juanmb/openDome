@@ -104,12 +104,12 @@ if __name__ == '__main__':
     dome.home_azimuth()
 
     while True:
-        print dome.get_status()
+        print(dome.get_status())
         time.sleep(1)
 
     # #dome.home_azimuth()
     # time.sleep(1)
     # dome.abort()
-    # #print dome.get_voltage()
+    # print dome.get_voltage()
 
     dome.close()

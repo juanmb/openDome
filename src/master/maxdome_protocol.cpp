@@ -1,5 +1,4 @@
 #include <inttypes.h>
-#include <EEPROM.h>
 #include "maxdome_protocol.h"
 
 
@@ -183,7 +182,6 @@ void MaxDomeProtocol::cmdSetPark(uint8_t *cmd) {
     conf.park_on_shutter = cmd[3];
     conf.park_pos = bytesToInt(cmd + 4);
     dome->setConf(conf);
-    EEPROM.put(0, conf);
 
     uint8_t resp[] = {START, 2, TO_COMPUTER | SETPARK_CMD, 0x00};
     sendResponse(resp, 4);
@@ -194,7 +192,6 @@ void MaxDomeProtocol::cmdSetTicks(uint8_t *cmd) {
     dome->getConf(&conf);
     conf.ticks_per_turn = bytesToInt(cmd + 3);
     dome->setConf(conf);
-    EEPROM.put(0, conf);
 
     uint8_t resp[] = {START, 2, TO_COMPUTER | TICKS_CMD, 0x00};
     sendResponse(resp, 4);

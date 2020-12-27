@@ -5,8 +5,22 @@
 #include <inttypes.h>
 #include "motor_driver.h"
 
-//#define DEBOUNCE_MS     10    // Discard encoder pulses shorter than this duration
-// (in milliseconds)
+#ifndef ENCODER_DIV
+#define ENCODER_DIV 1   // Encoder divider ratio
+#endif
+
+#ifndef AZ_TIMEOUT
+#define AZ_TIMEOUT 2000   // Azimuth movement timeout (in ms)
+#endif
+
+#ifndef AZ_TOLERANCE
+#define AZ_TOLERANCE 4       // Azimuth target tolerance in encoder ticks
+#endif
+
+#ifndef NSHUTTERS
+#define NSHUTTERS 0
+#endif
+
 
 enum Direction {
     DIR_CW,
@@ -75,10 +89,8 @@ typedef struct {
 
 class Dome {
   public:
-    Dome(Stream *ss, MotorDriver *drv);
-    void setConf(DomeConf cfg) {
-        conf = cfg;
-    };
+    Dome(Stream *ss, MotorDriver *drv, int home_pin);
+    void setConf(DomeConf cfg);
     void getConf(DomeConf *cfg);
     void getStatus(DomeStatus *status);
 
@@ -113,6 +125,7 @@ class Dome {
 
     MotorDriver *driver;    // Azimuth motor driver
     Stream *sstream;        // Serial stream of shutters board
+    int home_pin;
 
     DomeConf conf;
     AzimuthState state = ST_IDLE;

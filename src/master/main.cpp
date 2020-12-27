@@ -23,63 +23,49 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 *******************************************************************************/
 
 #include <Arduino.h>
-#include <EEPROM.h>
 #include <avr/wdt.h>
 #include <SoftwareSerial.h>
 #include <mms_motor.h>
 #include <dc_motor.h>
+#include <keypad.h>
 #include "maxdome_protocol.h"
 #include "dome.h"
 
+#define LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
 // Configuration
 //#define NSHUTTERS 2   // Uncomment if the shutter controller is available
 //#define MONSTER_SHIELD  // Uncomment if the motor driver is a Monster Moto Shield
-//#define USE_BUTTONS   // Uncomment if you want to move the dome with push buttons
-
-#ifndef ENCODER_DIV
-#define ENCODER_DIV     1   // Encoder divider ratio
-#endif
-
-#ifndef AZ_TIMEOUT
-#define AZ_TIMEOUT      2000   // Azimuth movement timeout (in ms)
-#endif
-
-#ifndef AZ_TOLERANCE
-#define AZ_TOLERANCE    4       // Azimuth target tolerance in encoder ticks
-#endif
-
-#ifndef AZ_SLOW_RANGE
-// The motor will run at slower speed when the dome is at this number of ticks from the target
-#define AZ_SLOW_RANGE   8
-#endif
-
-#ifndef NSHUTTERS
-#define NSHUTTERS    0
-#endif
 
 // Discard encoder pulses shorter than this duration (in milliseconds)
 //#define DEBOUNCE_MS     10
 
 // pin definitions
-#define ENCODER1 2      // Encoder
-#define ENCODER2 3      // Encoder
-#define BUTTON_CW   11  // CW movement button (active low)
-#define BUTTON_CCW  12  // CCW movement button (Active low)
-
-#if NSHUTTERS > 0
-#ifdef MONSTER_SHIELD
-#error "HAS_SHUTTER and MONSTER_SHIELD cannot be defined at the same time"
-#endif
-#endif
+#define ENCODER1    2       // Encoder
+#define ENCODER2    3       // Encoder
+#define HOME_PIN    10      // Home sensor pin
+#define BUTTON_CW   11      // CW movement button (active low)
+#define BUTTON_CCW  12      // CCW movement button (Active low)
+#define KEYPAD      A4      // analog keypad input
 
 // pins of HC12 module (serial radio transceiver)
 #define HC12_RX 4       // Receive Pin on HC12
 #define HC12_TX 5       // Transmit Pin on HC12
 
-// motor pins (if not using the Monster Motor Shield)
+// motor pins (if not using the Monster Moto Shield)
 #define MOTOR_CW  8     // Move motor clockwise
 #define MOTOR_CCW 9     // Move motor counterclockwise
+
+// Digital keypad pins
+int key_pins[] = {BUTTON_CW, BUTTON_CCW};
+
+// Analog keypad threshold values
+int key_thresholds[] = {92, 303, 518, 820};
+
+enum KeyIDs {
+    KEY_CW,
+    KEY_CCW,
+};
 
 #ifdef MONSTER_SHIELD
 MMSMotor motor(0);
@@ -88,11 +74,14 @@ DCMotor motor(MOTOR_CW, MOTOR_CCW);
 #endif
 
 #if NSHUTTERS > 0
+#ifdef MONSTER_SHIELD
+#error "MONSTER_SHIELD cannot be used when NSHUTTERS > 0"
+#endif
 // Create a Software Serial Port to communicate with the shutter controller
 SoftwareSerial HC12(HC12_TX, HC12_RX);
-Dome dome(&HC12, &motor);
+Dome dome(&HC12, &motor, HOME_PIN);
 #else
-Dome dome(NULL, &motor);
+Dome dome(NULL, &motor, HOME_PIN);
 #endif
 
 MaxDomeProtocol protoc(&Serial, &dome);
@@ -114,28 +103,32 @@ void encoderISR() {
         dome.tick(DIR_CW);
 }
 
-
-// move the dome when the buttons are pressed
-void read_buttons() {
-    static int prev_cw_button = 0, prev_ccw_button = 0;
-    int cw_button = !digitalRead(BUTTON_CW);
-    int ccw_button = !digitalRead(BUTTON_CCW);
-
-    if (cw_button != prev_cw_button) {
-        if (cw_button)
+// Manage keypad events
+void keypadHandler(const KeyMsg &msg) {
+    if (msg.event == KEY_EVT_PRESS) {
+        switch (msg.key_id) {
+        case KEY_CW:
             dome.moveAzimuth(DIR_CW);
-        else
-            dome.stopAzimuth();
-    } else if (ccw_button != prev_ccw_button) {
-        if (ccw_button)
-            dome.moveAzimuth(DIR_CCW);
-        else
-            dome.stopAzimuth();
+            break;
+        case KEY_CCW:
+            dome.moveAzimuth(DIR_CW);
+            break;
+        default:
+            dome.abort();
+        }
     }
-    prev_cw_button = cw_button;
-    prev_ccw_button = ccw_button;
+    else if (msg.event == KEY_EVT_RELEASE) {
+        dome.stopAzimuth();
+    }
 }
 
+#ifdef ANALOG_KEYPAD
+AnalogKeypad keypad(KEYPAD, LEN(key_thresholds), key_thresholds, keypadHandler);
+#else
+DigitalKeypad keypad(key_pins, LEN(key_pins), keypadHandler);
+#endif
+
+//#pragma message "nkeys: " LEN(key_thresholds)
 
 void setup() {
     wdt_disable();
@@ -146,15 +139,6 @@ void setup() {
     pinMode(BUTTON_CCW, INPUT_PULLUP);
 
     attachInterrupt(digitalPinToInterrupt(ENCODER1), encoderISR, CHANGE);
-
-    DomeConf conf;
-    EEPROM.get(0, conf);
-    conf.nshutters = NSHUTTERS;
-    conf.tolerance = AZ_TOLERANCE;
-    conf.az_timeout = AZ_TIMEOUT;
-    conf.encoder_div = ENCODER_DIV;
-    conf.ticks_per_turn = 786;
-    dome.setConf(conf);
 
     Serial.begin(MAXDOME_BAUDRATE);
 
@@ -167,9 +151,6 @@ void setup() {
 void loop() {
     protoc.readSerial();
     dome.update();
-
-#ifdef USE_BUTTONS
-    read_buttons();
-#endif
+    keypad.update();
     wdt_reset();
 }

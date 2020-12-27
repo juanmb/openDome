@@ -1,25 +1,39 @@
 #include <Arduino.h>
+#include <EEPROM.h>
 #include <string.h>
 #include "dome.h"
-
-#define HOME_SENSOR 10  // Home sensor (active low)
 
 #define VBAT_FACTOR (5.0/1024.0)
 #define VBAT_OFFSET 10.55
 
 
-Dome::Dome(Stream *ss, MotorDriver *drv) {
+Dome::Dome(Stream *ss, MotorDriver *drv, int home_pin) {
     sstream = ss;
     driver = drv;
+    this->home_pin = home_pin;
 
-    conf = {.ticks_per_turn = 360};
+    pinMode(home_pin, INPUT_PULLUP);
 
-    pinMode(HOME_SENSOR, INPUT_PULLUP);
+    // read the configuration from the EEPROM
+    DomeConf conf;
+    EEPROM.get(0, conf);
+
+    // These values are defined in macros.
+    // Values from the EEPROM are ignored
+    conf.nshutters = NSHUTTERS;
+    conf.tolerance = AZ_TOLERANCE;
+    conf.az_timeout = AZ_TIMEOUT;
+    conf.encoder_div = ENCODER_DIV;
 }
 
 void Dome::getConf(DomeConf *cfg) {
     memcpy(cfg, &conf, sizeof(DomeConf));
 }
+
+void Dome::setConf(DomeConf cfg) {
+    conf = cfg;
+    EEPROM.put(0, cfg);
+};
 
 // Obtain the direction of the shortest path to a target position
 Direction Dome::getDirection(uint16_t target) {
@@ -238,7 +252,7 @@ void Dome::update() {
         if (event == EVT_STOP || event == EVT_ABORT) {
             stopMotor();
             state = ST_IDLE;
-        } else if (!digitalRead(HOME_SENSOR)) {
+        } else if (!digitalRead(home_pin)) {
             stopMotor();
             home_pos = 0;
             pos = 0;
@@ -250,7 +264,7 @@ void Dome::update() {
         break;
 
     case ST_MOVING:
-        if (!digitalRead(HOME_SENSOR))
+        if (!digitalRead(home_pin))
             home_pos = pos;     // store detected home position
 
         if (event == EVT_STOP || event == EVT_ABORT) {
@@ -260,7 +274,7 @@ void Dome::update() {
         break;
 
     case ST_GOING:
-        if (!digitalRead(HOME_SENSOR))
+        if (!digitalRead(home_pin))
             home_pos = pos;     // store detected home position
 
         if (event == EVT_STOP || event == EVT_ABORT) {
