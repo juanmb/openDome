@@ -6,60 +6,37 @@
 #define MOTOR_CLOSE 1
 #define SPEED       1023
 
-#define OPEN_SW_ACTIVE_HIGH   1   // "Open" switch is active HIGH
-#define CLOSED_SW_ACTIVE_HIGH 1   // "Closed" switch is active HIGH
 
-bool noInterference(State st) {
-    return false;
-}
-
-// Shutter constructor with interference detection switch.
-// motor: pointer to an instance of MotorDriver
-// sw1: Limit switch (closed)
-// sw2: Limit switch (fully open)
-// timeout: timeout in ms
-// swInt: Interference switch
-Shutter::Shutter(MotorDriver *motorPtr, int closedSwitch, int openSwitch,
-                 unsigned long timeout, interFn checkInterference) {
-    motor = motorPtr;
-    swClosed = closedSwitch;
-    swOpen = openSwitch;
+// Shutter constructor without interference detection switch.
+Shutter::Shutter(MotorDriver *motor, int swClosed, int swOpen,
+            unsigned long timeout) {
+    this->motor = motor;
+    this->swClosed = swClosed;    // normally closed (1 if shutter is closed)
+    this->swOpen = swOpen;        // normally open (0 if shutter is fully open)
     runTimeout = timeout;
-    interference = checkInterference;
-    nextAction = DO_NONE;
+    interType = INTER_NO;
     initState();
 }
 
 
-inline bool Shutter::isOpen() {
-    return (digitalRead(swOpen) == OPEN_SW_ACTIVE_HIGH);
-}
-
-inline bool Shutter::isClosed() {
-    return (digitalRead(swClosed) == CLOSED_SW_ACTIVE_HIGH);
-}
-
-// Shutter constructor without interference detection switch.
-// motor: pointer to an instance of Motor
-// sw1: Limit switch (closed)
-// sw2: Limit switch (fully open)
-// timeout: timeout in ms
-Shutter::Shutter(MotorDriver *motorPtr, int closedSwitch,
-                 int openSwitch, unsigned long timeout) {
-    motor = motorPtr;
-    swClosed = closedSwitch;    // normally closed (1 if shutter is closed)
-    swOpen = openSwitch;        // normally open (0 if shutter is fully open)
+// Shutter constructor with interference detection switch.
+Shutter::Shutter(MotorDriver *motor, int swClosed, int swOpen,
+        int swInter, InterType type, unsigned long timeout) {
+    this->motor = motor;
+    this->swClosed = swClosed;
+    this->swOpen = swOpen;
+    this->swInter = swInter;
+    interType = type;
     runTimeout = timeout;
-    interference = noInterference;
-    nextAction = DO_NONE;
     initState();
 }
 
 
 void Shutter::initState() {
-    if (isClosed())
+    nextAction = DO_NONE;
+    if (digitalRead(swClosed))
         state = ST_CLOSED;
-    else if (isOpen())
+    else if (digitalRead(swOpen))
         state = ST_OPEN;
     else
         state = ST_ABORTED;
@@ -117,12 +94,12 @@ void Shutter::update() {
         }
         break;
     case ST_OPENING:
-        if (interference(state))
+        if ((interType == INTER_INNER) && digitalRead(swInter))
             motor->brake();
         else
             motor->run(MOTOR_OPEN, SPEED);
 
-        if (isOpen()) {
+        if (digitalRead(swOpen)) {
             state = ST_OPEN;
             motor->brake();
         } else if (action == DO_ABORT || action == DO_CLOSE) {
@@ -134,12 +111,12 @@ void Shutter::update() {
         }
         break;
     case ST_CLOSING:
-        if (interference(state))
+        if ((interType == INTER_OUTER) && !digitalRead(swInter))
             motor->brake();
         else
             motor->run(MOTOR_CLOSE, SPEED);
 
-        if (isClosed()) {
+        if (digitalRead(swClosed)) {
             state = ST_CLOSED;
             motor->brake();
         } else if (action == DO_ABORT || action == DO_OPEN) {

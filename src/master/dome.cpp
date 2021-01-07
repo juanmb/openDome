@@ -24,7 +24,9 @@ Dome::Dome(Stream *ss, MotorDriver *drv, int home_pin) {
     conf.tolerance = AZ_TOLERANCE;
     conf.az_timeout = AZ_TIMEOUT;
     conf.encoder_div = ENCODER_DIV;
+    this->conf = conf;
 }
+
 
 void Dome::getConf(DomeConf *cfg) {
     memcpy(cfg, &conf, sizeof(DomeConf));
@@ -123,8 +125,9 @@ void Dome::moveAzimuth(Direction dir) {
     event = EVT_MOVE;
 }
 
-void Dome::gotoAzimuth(uint16_t tgt) {
+void Dome::gotoAzimuth(uint16_t tgt, Direction dir) {
     next_target = tgt;
+    move_dir = dir;
     event = EVT_GOTO;
 }
 
@@ -329,7 +332,7 @@ void Dome::update() {
             startAzTimeout();
             state = ST_GOING;
             target = next_target;
-            moveMotor(getDirection(target));
+            moveMotor(move_dir);
         }
         break;
     }

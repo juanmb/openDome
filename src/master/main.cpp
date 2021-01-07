@@ -33,10 +33,6 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 
 #define LEN(a) ((int)(sizeof(a)/sizeof(*a)))
 
-// Configuration
-//#define NSHUTTERS 2   // Uncomment if the shutter controller is available
-//#define MONSTER_SHIELD  // Uncomment if the motor driver is a Monster Moto Shield
-
 // Discard encoder pulses shorter than this duration (in milliseconds)
 //#define DEBOUNCE_MS     10
 
@@ -44,9 +40,10 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define ENCODER1    2       // Encoder
 #define ENCODER2    3       // Encoder
 #define HOME_PIN    10      // Home sensor pin
-#define BUTTON_CW   11      // CW movement button (active low)
-#define BUTTON_CCW  12      // CCW movement button (Active low)
+
 #define KEYPAD      A4      // analog keypad input
+#define BUTTON_CW   A4      // CW movement button (active low)
+#define BUTTON_CCW  A5      // CCW movement button (Active low)
 
 // pins of HC12 module (serial radio transceiver)
 #define HC12_RX 4       // Receive Pin on HC12
@@ -56,15 +53,12 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 #define MOTOR_CW  8     // Move motor clockwise
 #define MOTOR_CCW 9     // Move motor counterclockwise
 
-// Digital keypad pins
-int key_pins[] = {BUTTON_CW, BUTTON_CCW};
-
-// Analog keypad threshold values
-int key_thresholds[] = {92, 303, 518, 820};
-
 enum KeyIDs {
-    KEY_CW,
-    KEY_CCW,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_ENTER,
 };
 
 #ifdef MONSTER_SHIELD
@@ -103,43 +97,72 @@ void encoderISR() {
         dome.tick(DIR_CW);
 }
 
-// Manage keypad events
+// Handle keypad events
 void keypadHandler(const KeyMsg &msg) {
     if (msg.event == KEY_EVT_PRESS) {
         switch (msg.key_id) {
-        case KEY_CW:
+        case KEY_RIGHT:
             dome.moveAzimuth(DIR_CW);
             break;
-        case KEY_CCW:
-            dome.moveAzimuth(DIR_CW);
+        case KEY_LEFT:
+            dome.moveAzimuth(DIR_CCW);
+            break;
+        case KEY_ENTER:
+            dome.abort();
+            break;
+        };
+    } else  if (msg.event == KEY_EVT_RELEASE) {
+        switch (msg.key_id) {
+        case KEY_UP:
+            dome.openShutter(SEL_BOTH);
+            break;
+        case KEY_DOWN:
+            dome.closeShutter(SEL_BOTH);
             break;
         default:
-            dome.abort();
+            dome.stopAzimuth();
         }
-    }
-    else if (msg.event == KEY_EVT_RELEASE) {
-        dome.stopAzimuth();
+    } else if (msg.event == KEY_EVT_HOLD_RELEASE) {
+        switch (msg.key_id) {
+        case KEY_UP:
+            dome.openShutter(SEL_BOTH);
+            break;
+        case KEY_DOWN:
+            dome.closeShutter(SEL_BOTH);
+            break;
+        default:
+            dome.stopAzimuth();
+        }
+    } else if (msg.event == KEY_EVT_DOUBLE_CLICK) {
+        switch (msg.key_id) {
+        case KEY_ENTER:
+            dome.home();
+            break;
+        default:
+            dome.stopAzimuth();
+        }
     }
 }
 
 #ifdef ANALOG_KEYPAD
-AnalogKeypad keypad(KEYPAD, LEN(key_thresholds), key_thresholds, keypadHandler);
+// Analog keypad threshold values and key IDs (Escornabot keypad v2.1)
+int key_thr[] = {597, 725, 794, 851, 953};
+uint8_t key_ids[] = {KEY_UP, KEY_LEFT, KEY_DOWN, KEY_ENTER, KEY_RIGHT};
+AnalogKeypad keypad(KEYPAD, LEN(key_thr), key_thr, key_ids, keypadHandler);
 #else
-DigitalKeypad keypad(key_pins, LEN(key_pins), keypadHandler);
+// Digital keypad pins and key IDs
+int key_pins[] = {BUTTON_CW, BUTTON_CCW};
+uint8_t key_ids[] = {KEY_RIGHT, KEY_LEFT};
+DigitalKeypad keypad(LEN(key_pins), key_pins, key_ids, keypadHandler);
 #endif
 
-//#pragma message "nkeys: " LEN(key_thresholds)
+//#pragma message "nkeys: " LEN(key_thr)
 
 void setup() {
     wdt_disable();
     wdt_enable(WDTO_2S);
-
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(BUTTON_CW, INPUT_PULLUP);
-    pinMode(BUTTON_CCW, INPUT_PULLUP);
-
     attachInterrupt(digitalPinToInterrupt(ENCODER1), encoderISR, CHANGE);
-
     Serial.begin(MAXDOME_BAUDRATE);
 
 #if NSHUTTERS > 0

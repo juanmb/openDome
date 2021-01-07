@@ -14,7 +14,7 @@
 #endif
 
 #ifndef AZ_TOLERANCE
-#define AZ_TOLERANCE 4       // Azimuth target tolerance in encoder ticks
+#define AZ_TOLERANCE 4    // Azimuth target tolerance in encoder ticks
 #endif
 
 #ifndef NSHUTTERS
@@ -99,7 +99,7 @@ class Dome {
 
     void moveAzimuth(Direction dir);
     void stopAzimuth();
-    void gotoAzimuth(uint16_t target);
+    void gotoAzimuth(uint16_t target, Direction dir);
     void home();
     void park();
     void abort();

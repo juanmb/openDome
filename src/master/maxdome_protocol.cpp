@@ -122,9 +122,9 @@ void MaxDomeProtocol::cmdHomeAzimuth(uint8_t *cmd) {
 }
 
 void MaxDomeProtocol::cmdGotoAzimuth(uint8_t *cmd) {
-    // direction field is ignored!
+    uint8_t dir = cmd[3] == 2;
     uint16_t target = bytesToInt(cmd + 4);
-    dome->gotoAzimuth(target);
+    dome->gotoAzimuth(target, (Direction)dir);
 
     uint8_t resp[] = {START, 3, TO_COMPUTER | GOTO_CMD, 0x01, 0x00};
     sendResponse(resp, 5);

@@ -7,10 +7,11 @@
 #define DOUBLE_CLICK_MS 300 // double click timeout in ms
 
 
-AnalogKeypad::AnalogKeypad(int pin, uint8_t nkeys, int *thresholds, KeyMsgCallback callback) {
+AnalogKeypad::AnalogKeypad(int pin, uint8_t nkeys, int *thresholds, uint8_t *key_ids, KeyMsgCallback callback) {
     this->pin = pin;
     this->nkeys = nkeys;
     this->thresholds = thresholds;
+    this->key_ids = key_ids;
     this->callback = callback;
     last_key = 255;
     last_released_key = 255;
@@ -23,7 +24,7 @@ void AnalogKeypad::update() {
     uint8_t key = 255;
     for (uint8_t i = 0; i < nkeys; i++) {
         if (value < thresholds[i]) {
-            key = i;
+            key = key_ids[i];
             break;
         }
     }

@@ -7,9 +7,10 @@
 #define DOUBLE_CLICK_MS 300 // double click timeout in ms
 
 
-DigitalKeypad::DigitalKeypad(int *pins, uint8_t nkeys, KeyMsgCallback callback) {
-    this->pins = pins;
+DigitalKeypad::DigitalKeypad(uint8_t nkeys, int *pins, uint8_t *key_ids, KeyMsgCallback callback) {
     this->nkeys = nkeys;
+    this->pins = pins;
+    this->key_ids = key_ids;
     this->callback = callback;
     last_key = 255;
     last_released_key = 255;
@@ -23,7 +24,7 @@ void DigitalKeypad::update() {
     uint8_t key = 255;
     for (uint8_t i = 0; i < nkeys; i++) {
         if (!digitalRead(pins[i])) {
-            key = i;
+            key = key_ids[i];
             break;
         }
     }

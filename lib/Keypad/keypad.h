@@ -22,11 +22,12 @@ typedef void(*KeyMsgCallback)(const KeyMsg &msg);
 
 class DigitalKeypad {
   public:
-    DigitalKeypad(int *pins, uint8_t nkeys, KeyMsgCallback callback);
+    DigitalKeypad(uint8_t nkeys, int *pins, uint8_t *key_ids, KeyMsgCallback callback);
     void update();
 
   private:
     int *pins;
+    uint8_t *key_ids;
     uint8_t nkeys;
     uint8_t last_key, last_released_key;
     long int last_t, last_release;
@@ -36,11 +37,12 @@ class DigitalKeypad {
 
 class AnalogKeypad {
   public:
-    AnalogKeypad(int pin, uint8_t nkeys, int *thresholds, KeyMsgCallback callback);
+    AnalogKeypad(int pin, uint8_t nkeys, int *thresholds, uint8_t *key_ids, KeyMsgCallback callback);
     void update();
 
   private:
     int pin;
+    uint8_t *key_ids;
     uint8_t nkeys;
     uint8_t last_key, last_released_key;
     long int last_t, last_release;

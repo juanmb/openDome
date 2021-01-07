@@ -33,20 +33,14 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 
 // Pin definitions
 #define SW_A1       12      // shutter closed switch (NC)
-#define SW_A2       11      // shutter open switch (NO)
+#define SW_A2       11      // shutter open switch (NC)
 #define SW_B1       10      // flap closed switch (NC)
-#define SW_B2       3       // flap open switch (NO)
+#define SW_B2       3       // flap open switch (NC)
 #define SW_INT      2       // shutter interference detection switch (NC)
 #define MOTOR_A1    8       // motor driver pin 1
 #define MOTOR_A2    9       // motor driver pin 2
 #define KEYPAD      A4      // analog keypad input
 #define VBAT        A5      // battery voltage reading
-
-// Digital keypad pins
-int key_pins[] = {A4, A6, A7};  // 'abort', 'open' and 'close' buttons
-
-// Analog keypad threshold values
-int key_thresholds[] = {92, 303, 518, 820};
 
 enum KeyIDs {
     KEY_ABORT,
@@ -70,16 +64,6 @@ enum KeyIDs {
 #define FLAP_TIMEOUT 15000
 #endif
 
-// Detect mechanical interfence between the two shutters
-bool checkFlapInter(State st) {
-    return (st == ST_OPENING) && digitalRead(SW_INT);
-}
-
-// Detect mechanical interfence between the two shutters
-bool checkShutInter(State st) {
-    return (st == ST_CLOSING) && digitalRead(SW_INT) && !digitalRead(SW_B1);
-}
-
 #ifdef SINGLE_SHUTTER
 // Single shutter with a generic motor driver
 DCMotor motorA(MOTOR_A1, MOTOR_A2);
@@ -93,8 +77,9 @@ Shutter shutters[] = {
 #ifdef SINGLE_SHUTTER
     Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT),
 #else
-    Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT, checkShutInter),
-    Shutter(&motorB, SW_B1, SW_B2, FLAP_TIMEOUT, checkFlapInter),
+    // two interfering shutters
+    Shutter(&motorA, SW_A1, SW_A2, SW_B1, INTER_OUTER, SHUT_TIMEOUT),
+    Shutter(&motorB, SW_B1, SW_B2, SW_INT, INTER_INNER, FLAP_TIMEOUT),
 #endif
 };
 
@@ -188,9 +173,15 @@ void keypadHandler(const KeyMsg &msg) {
 }
 
 #ifdef ANALOG_KEYPAD
-AnalogKeypad keypad(KEYPAD, LEN(key_thresholds), key_thresholds, keypadHandler);
+// Analog keypad threshold values and key IDs
+int key_thr[] = {92, 303, 518, 820};
+uint8_t key_ids[] = {KEY_ABORT, KEY_ABORT, KEY_OPEN, KEY_CLOSE};
+AnalogKeypad keypad(KEYPAD, LEN(key_thr), key_thr, key_ids, keypadHandler);
 #else
-DigitalKeypad keypad(key_pins, LEN(key_pins), keypadHandler);
+// Digital keypad pins and key IDs
+int key_pins[] = {A4, A6, A7};
+uint8_t key_ids[] = {KEY_ABORT, KEY_OPEN, KEY_CLOSE};
+DigitalKeypad keypad(LEN(key_pins), key_pins, key_ids, keypadHandler);
 #endif
 
 void setup() {
