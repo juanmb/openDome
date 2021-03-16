@@ -35,7 +35,7 @@ class Shutter {
   public:
     // Non-interfering shutter constructor
     // swClosed and swOpen: limit switches. Normally close, active high.
-    Shutter(MotorDriver *motor, int swClosed, int swOpen,
+    Shutter(int n, MotorDriver *motor, int swClosed, int swOpen,
             unsigned long timeout);
 
     // Interfering shutter constructor
@@ -43,7 +43,7 @@ class Shutter {
     // swInter: interference detection limit switch.
     // If type is INTER_INNER: swInter HIGH prevents shutter opening
     // If type is INTER_OUTER: swInter LOW prevents shutter closing
-    Shutter(MotorDriver *motor, int swClosed, int swOpen, int swInter,
+    Shutter(int n, MotorDriver *motor, int swClosed, int swOpen, int swInter,
             InterType type, unsigned long timeout);
 
     void open();
@@ -53,6 +53,7 @@ class Shutter {
     State getState();
 
   private:
+    int n;
     void initState();
     InterType interType;
     MotorDriver *motor;

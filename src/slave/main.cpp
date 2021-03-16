@@ -64,7 +64,7 @@ enum KeyIDs {
 #define FLAP_TIMEOUT 15000
 #endif
 
-#ifdef SINGLE_SHUTTER
+#if NSHUTTERS == 1
 // Single shutter with a generic motor driver
 DCMotor motorA(MOTOR_A1, MOTOR_A2);
 #else
@@ -74,12 +74,12 @@ MMSMotor motorB(1);
 #endif
 
 Shutter shutters[] = {
-#ifdef SINGLE_SHUTTER
-    Shutter(&motorA, SW_A1, SW_A2, SHUT_TIMEOUT),
+#if NSHUTTERS == 1
+    Shutter(1, &motorA, SW_A1, SW_A2, SHUT_TIMEOUT),
 #else
     // two interfering shutters
-    Shutter(&motorA, SW_A1, SW_A2, SW_B1, INTER_OUTER, SHUT_TIMEOUT),
-    Shutter(&motorB, SW_B1, SW_B2, SW_INT, INTER_INNER, FLAP_TIMEOUT),
+    Shutter(1, &motorA, SW_A1, SW_A2, SW_B1, INTER_OUTER, SHUT_TIMEOUT),
+    Shutter(2, &motorB, SW_B1, SW_B2, SW_INT, INTER_INNER, FLAP_TIMEOUT),
 #endif
 };
 
@@ -96,14 +96,9 @@ State domeStatus() {
         st = shutters[i].getState();
         closed = closed && (st == ST_CLOSED);
 
-        if (st == ST_ERROR)
-            return ST_ERROR;
-        else if (st == ST_OPENING)
-            return ST_OPENING;
-        else if (st == ST_CLOSING)
-            return ST_CLOSING;
-        else if (st == ST_OPEN)
-            return ST_OPEN;
+        if ((st == ST_ERROR) || (st == ST_OPENING) ||
+            (st == ST_CLOSING) || (st == ST_OPEN))
+            return st;
     }
     if (closed)
         return ST_CLOSED;
@@ -158,13 +153,20 @@ void cmdGetVBat() {
 
 // Manage keypad events
 void keypadHandler(const KeyMsg &msg) {
-    if (msg.event == KEY_EVT_RELEASE) {
+    if (msg.event == KEY_EVT_PRESS) {
+        State st = domeStatus();
         switch (msg.key_id) {
         case KEY_OPEN:
-            cmdOpenBoth();
+            if (st == ST_OPENING || st == ST_CLOSING)
+                cmdAbort();
+            else
+                cmdOpenBoth();
             break;
         case KEY_CLOSE:
-            cmdClose();
+            if (st == ST_OPENING || st == ST_CLOSING)
+                cmdAbort();
+            else
+                cmdClose();
             break;
         default:
             cmdAbort();
@@ -179,8 +181,8 @@ uint8_t key_ids[] = {KEY_ABORT, KEY_ABORT, KEY_OPEN, KEY_CLOSE};
 AnalogKeypad keypad(KEYPAD, LEN(key_thr), key_thr, key_ids, keypadHandler);
 #else
 // Digital keypad pins and key IDs
-int key_pins[] = {A4, A6, A7};
-uint8_t key_ids[] = {KEY_ABORT, KEY_OPEN, KEY_CLOSE};
+int key_pins[] = {A2, A3, A4};
+uint8_t key_ids[] = {KEY_OPEN, KEY_CLOSE, KEY_ABORT};
 DigitalKeypad keypad(LEN(key_pins), key_pins, key_ids, keypadHandler);
 #endif
 
@@ -194,6 +196,12 @@ void setup() {
     pinMode(SW_B1, INPUT_PULLUP);
     pinMode(SW_B2, INPUT_PULLUP);
     pinMode(SW_INT, INPUT_PULLUP);
+
+#ifndef ANALOG_KEYPAD
+    pinMode(A2, INPUT_PULLUP);
+    pinMode(A3, INPUT_PULLUP);
+    pinMode(A4, INPUT_PULLUP);
+#endif
 
     // Map serial commands to functions
     sCmd.addCommand("open", cmdOpenBoth);
@@ -216,7 +224,7 @@ void loop() {
     State st = domeStatus();
 
     // switch on the LED if there is an error
-    digitalWrite(LED_BUILTIN, (st == ST_ERROR));
+    digitalWrite(LED_BUILTIN, (st == ST_OPENING || st == ST_CLOSING || st == ST_ERROR));
 
     // close the dome if the time since the last command is too long
     if ((lastCmdTime > 0) && ((millis() - lastCmdTime) > COMMAND_TIMEOUT)) {
