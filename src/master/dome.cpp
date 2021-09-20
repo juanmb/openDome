@@ -217,17 +217,14 @@ void Dome::exitShutters() {
 
 // Increment or decrement the azimuth position by 1 tick
 void Dome::tick(Direction dir) {
-    static uint8_t count = 0;
-
     if (dir == DIR_CCW) {
-        count = (count == 0 ? conf.encoder_div - 1 : count - 1);
-        if (count == 0)
-            pos = (pos == 0 ? conf.ticks_per_turn - 1 : pos - 1);
+        ticks++;
     } else {
-        count = (count + 1 == conf.encoder_div ? 0 : count + 1);
-        if (count == 0)
-            pos = (pos + 1 == conf.ticks_per_turn ? 0 : pos + 1);
+        ticks--;
     }
+
+    int32_t tmp = (ticks/ENCODER_DIV) % conf.ticks_per_turn;
+    pos = tmp >=0 ? tmp : conf.ticks_per_turn + tmp;
 }
 
 void Dome::startAzTimeout() {
@@ -258,6 +255,7 @@ void Dome::update() {
         } else if (!digitalRead(home_pin)) {
             stopMotor();
             home_pos = 0;
+            ticks = 0;
             pos = 0;
             state = ST_IDLE;
         } else if (checkAzTimeout()) {

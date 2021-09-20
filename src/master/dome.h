@@ -10,7 +10,7 @@
 #endif
 
 #ifndef AZ_TIMEOUT
-#define AZ_TIMEOUT 2000   // Azimuth movement timeout (in ms)
+#define AZ_TIMEOUT 120000   // Azimuth movement timeout (in ms)
 #endif
 
 #ifndef AZ_TOLERANCE
@@ -131,6 +131,7 @@ class Dome {
     AzimuthState state = ST_IDLE;
     AzimuthEvent event = EVT_NONE;
     Direction current_dir, move_dir;
+    int32_t ticks = 0;
     uint16_t pos = 0, last_pos, target, next_target = 0, home_pos = 0;
     unsigned long t0;
     AfterPark after_park;
